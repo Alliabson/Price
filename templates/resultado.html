@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultado da Simulação</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .scrollable-table {
+            overflow-x: auto;
+            max-width: 100%;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #e6f3ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h2 class="mb-4 text-center">Resultado da Simulação</h2>
+        
+        <div class="card mb-4 shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Resumo Financeiro</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Valor Financiado:</strong> {{ formatar_moeda(valor_financiado) }}</p>
+                        <p><strong>Modalidade:</strong> {{ modalidade|title }}</p>
+                        <p><strong>Taxa Mensal:</strong> {{ taxa_mensal }}%</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Comissão Coordenação:</strong> {{ formatar_moeda(comissoes.coord) }}</p>
+                        <p><strong>Comissão Imobiliária:</strong> {{ formatar_moeda(comissoes.imob) }}</p>
+                        <p><strong>Total Comissões:</strong> {{ formatar_moeda(comissoes.total) }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Cronograma de Pagamentos</h5>
+            </div>
+            <div class="card-body">
+                <div class="scrollable-table">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item</th>
+                                <th>Tipo</th>
+                                <th>Data Venc.</th>
+                                <th>Data Pag.</th>
+                                <th>Dias</th>
+                                <th>Valor</th>
+                                <th>Valor Presente</th>
+                                <th>Desconto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in cronograma %}
+                                {% if item.Item != 'TOTAL' %}
+                                    <tr>
+                                        <td>{{ item.Item }}</td>
+                                        <td>{{ item.Tipo }}</td>
+                                        <td>{{ item.Data_Vencimento }}</td>
+                                        <td>{{ item.Data_Pagamento }}</td>
+                                        <td>{{ item.Dias }}</td>
+                                        <td class="text-end">{{ formatar_moeda(item.Valor) }}</td>
+                                        <td class="text-end">{{ formatar_moeda(item.Valor_Presente) }}</td>
+                                        <td class="text-end">{{ formatar_moeda(item.Desconto_Aplicado) }}</td>
+                                    </tr>
+                                {% else %}
+                                    <tr class="total-row">
+                                        <td colspan="5">TOTAL</td>
+                                        <td class="text-end">{{ formatar_moeda(item.Valor) }}</td>
+                                        <td class="text-end">{{ formatar_moeda(item.Valor_Presente) }}</td>
+                                        <td class="text-end">{{ formatar_moeda(item.Desconto_Aplicado) }}</td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+            <a href="/" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Nova Simulação
+            </a>
+            <div>
+                <form method="POST" class="d-inline">
+                    {% for key, value in request.form.items() %}
+                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endfor %}
+                    <button type="submit" name="exportar" value="pdf" class="btn btn-success me-2">
+                        <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+                    </button>
+                    <button type="submit" name="exportar" value="excel" class="btn btn-success">
+                        <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

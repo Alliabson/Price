@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Financiamento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            font-weight: 500;
+        }
+        .btn-export {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Simulador de Financiamento Detalhado</h1>
+        <form method="POST" action="/">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">Parâmetros do Financiamento</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Linha 1 -->
+                        <div class="col-md-4">
+                            <label for="valor_total" class="form-label">Valor do Terreno</label>
+                            <input type="number" step="0.01" class="form-control" id="valor_total" name="valor_total" value="{{ request.form.valor_total or '500000' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="entrada" class="form-label">Valor de Entrada</label>
+                            <input type="number" step="0.01" class="form-control" id="entrada" name="entrada" value="{{ request.form.entrada or '50000' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="valor_parcela" class="form-label">Valor da Parcela</label>
+                            <input type="number" step="0.01" class="form-control" id="valor_parcela" name="valor_parcela" value="{{ request.form.valor_parcela or '0' }}">
+                        </div>
+
+                        <!-- Linha 2 -->
+                        <div class="col-md-4">
+                            <label for="valor_balao" class="form-label">Valor do Balão</label>
+                            <input type="number" step="0.01" class="form-control" id="valor_balao" name="valor_balao" value="{{ request.form.valor_balao or '0' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="quantidade_parcelas" class="form-label">Quantidade de Parcelas</label>
+                            <input type="number" class="form-control" id="quantidade_parcelas" name="quantidade_parcelas" value="{{ request.form.quantidade_parcelas or '120' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="quantidade_baloes" class="form-label">Quantidade de Balões</label>
+                            <input type="number" class="form-control" id="quantidade_baloes" name="quantidade_baloes" value="{{ request.form.quantidade_baloes or '0' }}" readonly>
+                        </div>
+
+                        <!-- Linha 3 -->
+                        <div class="col-md-4">
+                            <label for="taxa_mensal" class="form-label">Taxa Mensal (%)</label>
+                            <input type="number" step="0.01" class="form-control" id="taxa_mensal" name="taxa_mensal" value="{{ request.form.taxa_mensal or '0.79' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="modalidade_plano" class="form-label">Modalidade de Plano</label>
+                            <select class="form-select" id="modalidade_plano" name="modalidade_plano">
+                                <option value="mensal" {% if request.form.modalidade_plano == 'mensal' %}selected{% endif %}>Mensal</option>
+                                <option value="mensal + balão" {% if request.form.modalidade_plano == 'mensal + balão' %}selected{% endif %}>Mensal + Balão</option>
+                                <option value="só balão anual" {% if request.form.modalidade_plano == 'só balão anual' %}selected{% endif %}>Só Balão Anual</option>
+                                <option value="só balão semestral" {% if request.form.modalidade_plano == 'só balão semestral' %}selected{% endif %}>Só Balão Semestral</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tipo_balao" class="form-label">Tipo de Balão</label>
+                            <select class="form-select" id="tipo_balao" name="tipo_balao">
+                                <option value="anual" {% if request.form.tipo_balao == 'anual' %}selected{% endif %}>Anual</option>
+                                <option value="semestral" {% if request.form.tipo_balao == 'semestral' %}selected{% endif %}>Semestral</option>
+                            </select>
+                        </div>
+
+                        <!-- Linha 4 -->
+                        <div class="col-md-4">
+                            <label for="data_entrada" class="form-label">Data de Entrada</label>
+                            <input type="text" class="form-control" id="data_entrada" name="data_entrada" value="{{ request.form.data_entrada or now.strftime('%d/%m/%Y') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="comissao_coordenacao" class="form-label">Comissão Coordenação (%)</label>
+                            <input type="number" step="0.01" class="form-control" id="comissao_coordenacao" name="comissao_coordenacao" value="{{ request.form.comissao_coordenacao or '0.5' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="comissao_imobiliaria" class="form-label">Comissão Imobiliária (%)</label>
+                            <input type="number" step="0.01" class="form-control" id="comissao_imobiliaria" name="comissao_imobiliaria" value="{{ request.form.comissao_imobiliaria or '5.0' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">Calcular Financiamento</button>
+                <button type="submit" name="exportar" value="pdf" class="btn btn-success btn-export">Exportar PDF</button>
+                <button type="submit" name="exportar" value="excel" class="btn btn-success btn-export">Exportar Excel</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Atualizar quantidade de balões quando mudar modalidade ou parcelas
+            $('#modalidade_plano, #tipo_balao, #quantidade_parcelas').change(function() {
+                const modalidade = $('#modalidade_plano').val();
+                const parcelas = $('#quantidade_parcelas').val();
+                const tipoBalao = $('#tipo_balao').val();
+                
+                $.ajax({
+                    url: '/calcular_baloes',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        modalidade: modalidade,
+                        parcelas: parcelas,
+                        tipo_balao: tipoBalao
+                    }),
+                    success: function(response) {
+                        $('#quantidade_baloes').val(response.qtd_baloes);
+                    }
+                });
+            });
+
+            // Desabilitar tipo de balão quando não for relevante
+            function atualizarCampos() {
+                const modalidade = $('#modalidade_plano').val();
+                
+                if (modalidade === 'mensal') {
+                    $('#tipo_balao').prop('disabled', true);
+                    $('#valor_balao').prop('disabled', true);
+                    $('#valor_parcela').prop('disabled', false);
+                } else if (modalidade === 'mensal + balão') {
+                    $('#tipo_balao').prop('disabled', false);
+                    $('#valor_balao').prop('disabled', false);
+                    $('#valor_parcela').prop('disabled', false);
+                } else if (modalidade.includes('só balão')) {
+                    $('#tipo_balao').prop('disabled', true);
+                    $('#valor_balao').prop('disabled', false);
+                    $('#valor_parcela').prop('disabled', true);
+                }
+            }
+
+            $('#modalidade_plano').change(atualizarCampos);
+            atualizarCampos(); // Executar no carregamento
+        });
+    </script>
+</body>
+</html>
