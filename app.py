@@ -3,26 +3,14 @@ import math
 import pandas as pd
 from datetime import datetime
 import locale
-import sys
 import logging
 
 # --- Configuração inicial de logging ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- CONFIGURAÇÃO INICIAL DEVE VIR PRIMEIRO ---
+# --- CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Calculadora Financeira", page_icon="💰", layout="wide")
-
-# --- Verificação robusta do Plotly com fallback ---
-PLOTLY_AVAILABLE = False
-try:
-    import plotly.express as px
-    import kaleido  # Necessário para exportação estática no Plotly
-    PLOTLY_AVAILABLE = True
-    logger.info("Plotly e Kaleido importados com sucesso")
-except ImportError as e:
-    logger.warning(f"Bibliotecas de gráficos não disponíveis: {str(e)}")
-    st.warning()
 
 # --- Configuração robusta do locale com cache ---
 @st.cache_resource
@@ -51,14 +39,11 @@ configure_locale()
 # Função para formatar moeda com fallback robusto
 def formatar_moeda(valor):
     try:
-        # Tenta usar o locale configurado
         return locale.currency(valor, grouping=True, symbol=True)
     except:
         try:
-            # Fallback 1: Formatação manual com locale neutro
             return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         except:
-            # Fallback 2: Formatação simples
             return f"R$ {valor:.2f}"
 
 # --- Funções de Cálculo Financeiro ---
@@ -170,6 +155,81 @@ def simular_imobiliario(valor, prazo_meses, taxa=0.7):
         'historico': historico
     }
 
+# --- Funções para Visualização ---
+def mostrar_evolucao_financiamento(df, sistema_nome):
+    st.subheader(f"Evolução - Sistema {sistema_nome}")
+    
+    # Configuração de cores
+    cores = {
+        'Prestação': '#1f77b4',  # Azul
+        'Juros': '#ff7f0e',      # Laranja
+        'Amortização': '#2ca02c', # Verde
+        'Saldo Devedor': '#9467bd' # Roxo
+    }
+    
+    # Gráfico de componentes da parcela
+    st.line_chart(
+        df.set_index('Período')[['Prestação', 'Juros', 'Amortização']],
+        color=[cores['Prestação'], cores['Juros'], cores['Amortização']]
+    )
+    
+    # Gráfico de saldo devedor
+    st.area_chart(
+        df.set_index('Período')['Saldo Devedor'],
+        color=cores['Saldo Devedor']
+    )
+    
+    # Tabela resumida
+    with st.expander("Ver estatísticas detalhadas"):
+        st.dataframe(df.describe().style.format("{:.2f}"))
+
+def mostrar_comparativo_sistemas(df_price, df_sac):
+    st.subheader("Comparação Price vs SAC")
+    
+    # Criar DataFrame combinado
+    df_comparativo = pd.DataFrame({
+        'Período': df_price['Período'],
+        'Price': df_price['Prestação'],
+        'SAC': df_sac['Prestação'],
+        'Diferença': df_price['Prestação'] - df_sac['Prestação']
+    })
+    
+    # Gráfico comparativo
+    st.line_chart(
+        df_comparativo.set_index('Período')[['Price', 'SAC']],
+        color=['#1f77b4', '#ff7f0e']  # Azul para Price, Laranja para SAC
+    )
+    
+    # Gráfico de diferença
+    st.bar_chart(
+        df_comparativo.set_index('Período')['Diferença'],
+        color='#d62728'  # Vermelho para diferença
+    )
+
+def mostrar_evolucao_investimentos(df_poup, df_imob):
+    st.subheader("Evolução dos Investimentos")
+    
+    # Combinar os dados
+    df_combinado = pd.DataFrame({
+        'Mês': df_poup['Mês'],
+        'Poupança': df_poup['Valor'],
+        'Outra Aplicação': df_imob['Valor'],
+        'Rendimento Poupança': df_poup['Rendimento'],
+        'Rendimento Outra': df_imob['Rendimento']
+    })
+    
+    # Gráfico de valores
+    st.line_chart(
+        df_combinado.set_index('Mês')[['Poupança', 'Outra Aplicação']],
+        color=['#1f77b4', '#ff7f0e']
+    )
+    
+    # Gráfico de rendimentos
+    st.area_chart(
+        df_combinado.set_index('Mês')[['Rendimento Poupança', 'Rendimento Outra']],
+        color=['#a6cee3', '#fdbf6f']
+    )
+
 # --- Interface do Streamlit ---
 st.title("💰 Calculadora Financeira Avançada")
 
@@ -233,22 +293,8 @@ with tab1:
                 use_container_width=True
             )
             
-            # Gráfico
-            st.subheader("Evolução do Financiamento")
-            if PLOTLY_AVAILABLE:
-                fig = px.line(
-                    df, 
-                    x='Período', 
-                    y=['Prestação', 'Juros', 'Amortização'],
-                    title=f"Evolução - Sistema {sistema_nome}",
-                    labels={'value': 'Valor (R$)', 'variable': 'Componente'}
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.line_chart(
-                    df.set_index('Período')[['Prestação', 'Juros', 'Amortização']],
-                    color=["#1f77b4", "#ff7f0e", "#2ca02c"]
-                )
+            # Gráficos
+            mostrar_evolucao_financiamento(df, sistema_nome)
                     
         except Exception as e:
             st.error(f"Erro ao calcular financiamento: {str(e)}")
@@ -302,31 +348,10 @@ with tab2:
             cols[1].metric("Total Juros (SAC)", formatar_moeda(resultado_sac['total_juros']))
             cols[2].metric("Diferença", f"{formatar_moeda(diff_juros)} ({percentual_diff}%)")
             
-            # Gráfico comparativo
-            st.subheader("Evolução das Parcelas")
+            # Gráficos comparativos
             df_price = pd.DataFrame(resultado_price['parcelas'])
             df_sac = pd.DataFrame(resultado_sac['parcelas'])
-            
-            df_comparativo = pd.DataFrame({
-                'Período': df_price['Período'],
-                'Price': df_price['Prestação'],
-                'SAC': df_sac['Prestação']
-            })
-            
-            if PLOTLY_AVAILABLE:
-                fig = px.line(
-                    df_comparativo,
-                    x='Período',
-                    y=['Price', 'SAC'],
-                    title="Comparação Price vs SAC",
-                    labels={'value': 'Valor (R$)', 'variable': 'Sistema'}
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.line_chart(
-                    df_comparativo.set_index('Período')[['Price', 'SAC']],
-                    color=["#1f77b4", "#ff7f0e"]
-                )
+            mostrar_comparativo_sistemas(df_price, df_sac)
             
             # Análise
             st.subheader("Análise")
@@ -369,56 +394,17 @@ with tab3:
                 st.metric("Poupança - Rendimento", formatar_moeda(res_poupanca['rendimento_total']))
                 
                 df_poup = pd.DataFrame(res_poupanca['historico'])
-                if PLOTLY_AVAILABLE:
-                    fig = px.line(
-                        df_poup,
-                        x='Mês',
-                        y='Valor',
-                        title="Evolução da Poupança"
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.line_chart(df_poup.set_index('Mês')['Valor'])
+                st.line_chart(df_poup.set_index('Mês')['Valor'])
             
             with cols[1]:
                 st.metric("Outra aplicação - Valor Final", formatar_moeda(res_imobiliario['valor_final']))
                 st.metric("Outra aplicação - Rendimento", formatar_moeda(res_imobiliario['rendimento_total']))
                 
                 df_imob = pd.DataFrame(res_imobiliario['historico'])
-                if PLOTLY_AVAILABLE:
-                    fig = px.line(
-                        df_imob,
-                        x='Mês',
-                        y='Valor',
-                        title="Evolução Outra aplicação",
-                        color_discrete_sequence=['orange']
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.line_chart(df_imob.set_index('Mês')['Valor'])
+                st.line_chart(df_imob.set_index('Mês')['Valor'])
             
             # Comparativo
-            st.subheader("Comparativo entre Investimentos")
-            df_comparativo = pd.DataFrame({
-                'Mês': df_poup['Mês'],
-                'Poupança': df_poup['Valor'],
-                'Outra aplicação': df_imob['Valor']
-            })
-            
-            if PLOTLY_AVAILABLE:
-                fig = px.line(
-                    df_comparativo,
-                    x='Mês',
-                    y=['Poupança', 'Outra aplicação'],
-                    title="Comparação de Investimentos",
-                    labels={'value': 'Valor (R$)', 'variable': 'Tipo'}
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.line_chart(
-                    df_comparativo.set_index('Mês')[['Poupança', 'Outra aplicação']],
-                    color=["#1f77b4", "#ff7f0e"]
-                )
+            mostrar_evolucao_investimentos(df_poup, df_imob)
                 
         except Exception as e:
             st.error(f"Erro ao simular investimentos: {str(e)}")
