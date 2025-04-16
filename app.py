@@ -8,14 +8,24 @@ import sys
 # --- CONFIGURAÇÃO INICIAL DEVE VIR PRIMEIRO ---
 st.set_page_config(page_title="Calculadora Financeira", page_icon="💰", layout="wide")
 
-# Configuração do locale para PT-BR com fallback
-try:
-    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-except locale.Error:
+# Configuração robusta do locale
+def configure_locale():
     try:
-        locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
+        locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
     except locale.Error:
-        st.warning("Não foi possível configurar o locale para PT-BR. Os valores monetários podem não formatar corretamente.")
+        try:
+            locale.setlocale(locale.LC_ALL, 'pt_BR')
+        except locale.Error:
+            try:
+                locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
+            except locale.Error:
+                try:
+                    locale.setlocale(locale.LC_ALL, '')
+                except locale.Error:
+                    locale.setlocale(locale.LC_ALL, 'C.UTF-8')
+                    print("Configuração de locale específica não disponível. Usando padrão internacional.")
+
+configure_locale()
 
 # Verifica se o Plotly está instalado para gráficos mais avançados
 try:
