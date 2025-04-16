@@ -22,8 +22,7 @@ try:
     logger.info("Plotly e Kaleido importados com sucesso")
 except ImportError as e:
     logger.warning(f"Bibliotecas de gráficos não disponíveis: {str(e)}")
-    st.warning("""
- """)
+    st.warning()
 
 # --- Configuração robusta do locale com cache ---
 @st.cache_resource
