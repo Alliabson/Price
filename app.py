@@ -4,24 +4,7 @@ import pandas as pd
 from datetime import datetime
 import locale
 import sys
-import io
-from tempfile import NamedTemporaryFile
-try:
-    from fpdf2 import FPDF  # Tenta primeiro a versão mais nova (fpdf2)
-    st.success("Usando fpdf2 (versão mais recente)")
-except ImportError:
-    try:
-        from fpdf import FPDF  # Fallback para a versão antiga
-        st.success("Usando fpdf (versão legado)")
-    except ImportError:
-        st.error("""
-        Não foi possível importar a biblioteca FPDF. 
-        Por favor, verifique se as dependências estão corretas no arquivo requirements.txt:
-        - fpdf2==2.7.7
-        - fpdf==1.7.2
-        """)
-        st.stop()
-        
+
 # Configuração do locale para PT-BR com fallback
 try:
     locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
@@ -156,61 +139,6 @@ def simular_imobiliario(valor, prazo_meses, taxa=0.7):
         'historico': historico
     }
 
-def gerar_pdf_bytes(resultado, sistema):
-    """Gera PDF e retorna como bytes para download"""
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    
-    # Cabeçalho
-    pdf.cell(200, 10, txt="Detalhamento do Financiamento", ln=1, align='C')
-    pdf.cell(200, 10, txt=f"Sistema: {sistema}", ln=1, align='C')
-    pdf.cell(200, 10, txt=f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=1, align='C')
-    pdf.ln(10)
-    
-    # Informações gerais
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(200, 10, txt="Resumo do Financiamento", ln=1)
-    pdf.set_font("Arial", size=10)
-    
-    pdf.cell(100, 8, txt=f"Valor financiado: {formatar_moeda(resultado['valor_financiado'])}", ln=1)
-    pdf.cell(100, 8, txt=f"Taxa de juros: {resultado['taxa_juros']}% ao mês", ln=1)
-    pdf.cell(100, 8, txt=f"Prazo: {resultado['prazo_meses']} meses", ln=1)
-    
-    if sistema == "Price":
-        pdf.cell(100, 8, txt=f"Valor da parcela: {formatar_moeda(resultado['valor_parcela'])}", ln=1)
-    else:
-        pdf.cell(100, 8, txt=f"1ª Parcela: {formatar_moeda(resultado['valor_primeira_parc'])}", ln=1)
-        pdf.cell(100, 8, txt=f"Última Parcela: {formatar_moeda(resultado['valor_ultima_parc'])}", ln=1)
-    
-    pdf.cell(100, 8, txt=f"Total pago: {formatar_moeda(resultado['total_pago'])}", ln=1)
-    pdf.cell(100, 8, txt=f"Total de juros: {formatar_moeda(resultado['total_juros'])}", ln=1)
-    pdf.ln(10)
-    
-    # Tabela de parcelas
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(200, 10, txt="Detalhamento das Parcelas", ln=1)
-    pdf.set_font("Arial", 'B', 10)
-    
-    col_widths = [20, 30, 30, 30, 40]
-    headers = ["Período", "Prestação", "Juros", "Amortização", "Saldo Devedor"]
-    
-    for i, header in enumerate(headers):
-        pdf.cell(col_widths[i], 10, txt=header, border=1)
-    pdf.ln()
-    
-    pdf.set_font("Arial", size=8)
-    for parcela in resultado['parcelas']:
-        pdf.cell(col_widths[0], 8, txt=str(parcela['Período']), border=1)
-        pdf.cell(col_widths[1], 8, txt=formatar_moeda(parcela['Prestação']), border=1)
-        pdf.cell(col_widths[2], 8, txt=formatar_moeda(parcela['Juros']), border=1)
-        pdf.cell(col_widths[3], 8, txt=formatar_moeda(parcela['Amortização']), border=1)
-        pdf.cell(col_widths[4], 8, txt=formatar_moeda(parcela['Saldo Devedor']), border=1)
-        pdf.ln()
-    
-    # Retorna os bytes do PDF
-    return pdf.output(dest='S').encode('latin1')
-
 # --- Interface do Streamlit ---
 st.set_page_config(page_title="Calculadora Financeira", page_icon="💰", layout="wide")
 st.title("💰 Calculadora Financeira Avançada")
@@ -291,21 +219,9 @@ with tab1:
                     df.set_index('Período')[['Prestação', 'Juros', 'Amortização']],
                     color=["#1f77b4", "#ff7f0e", "#2ca02c"]
                 )
-            
-            # Exportar PDF - Versão corrigida
-            pdf_bytes = gerar_pdf_bytes(resultado, sistema_nome)
-            st.download_button(
-                label="Exportar para PDF",
-                data=pdf_bytes,
-                file_name=f"financiamento_{sistema_nome}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                mime="application/pdf"
-            )
                     
         except Exception as e:
             st.error(f"Erro ao calcular financiamento: {str(e)}")
-
-
-# [As abas Comparativo e Investimentos seguem a mesma estrutura, com tratamento de erros semelhante]
 
 with tab2:
     st.header("Comparativo Price vs SAC")
