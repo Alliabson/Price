@@ -21,6 +21,7 @@ st.set_page_config(page_title="Calculadora Financeira", page_icon="💰", layout
 # Configuração robusta do locale
 def configure_locale():
     try:
+        # Tenta configurar o locale específico do Brasil
         locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
     except locale.Error:
         try:
@@ -32,9 +33,11 @@ def configure_locale():
                 try:
                     locale.setlocale(locale.LC_ALL, '')
                 except locale.Error:
+                    # Fallback para locale neutro
                     locale.setlocale(locale.LC_ALL, 'C.UTF-8')
-                    print("Configuração de locale específica não disponível. Usando padrão internacional.")
+                    st.warning("Configuração de locale específica não disponível. Usando padrão internacional.")
 
+# Configura o locale no início da execução
 configure_locale()
 
 # Verifica se o Plotly está instalado para gráficos mais avançados
