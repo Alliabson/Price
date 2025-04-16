@@ -28,11 +28,12 @@ def configure_locale():
 configure_locale()
 
 # Verifica se o Plotly está instalado para gráficos mais avançados
+PLOTLY_AVAILABLE = False
 try:
     import plotly.express as px
+    import kaleido  # Não usado diretamente, mas verifica se está instalado
     PLOTLY_AVAILABLE = True
 except ImportError:
-    PLOTLY_AVAILABLE = False
     st.warning("Plotly não está instalado. Usando gráficos nativos do Streamlit (menos recursos).")
 
 # Função para formatar moeda com fallback robusto
