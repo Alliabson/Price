@@ -3,51 +3,54 @@ import math
 import pandas as pd
 from datetime import datetime
 import locale
-import subprocess
 import sys
+import logging
 
-def install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-try:
-    import plotly
-except ImportError:
-    install("plotly")
-    install("kaleido")
+# --- Configuração inicial de logging ---
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # --- CONFIGURAÇÃO INICIAL DEVE VIR PRIMEIRO ---
 st.set_page_config(page_title="Calculadora Financeira", page_icon="💰", layout="wide")
 
-# Configuração robusta do locale
-def configure_locale():
-    try:
-        # Tenta configurar o locale específico do Brasil
-        locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-    except locale.Error:
-        try:
-            locale.setlocale(locale.LC_ALL, 'pt_BR')
-        except locale.Error:
-            try:
-                locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
-            except locale.Error:
-                try:
-                    locale.setlocale(locale.LC_ALL, '')
-                except locale.Error:
-                    # Fallback para locale neutro
-                    locale.setlocale(locale.LC_ALL, 'C.UTF-8')
-                    st.warning("Configuração de locale específica não disponível. Usando padrão internacional.")
-
-# Configura o locale no início da execução
-configure_locale()
-
-# Verifica se o Plotly está instalado para gráficos mais avançados
+# --- Verificação robusta do Plotly com fallback ---
 PLOTLY_AVAILABLE = False
 try:
     import plotly.express as px
-    import kaleido  # Não usado diretamente, mas verifica se está instalado
+    import kaleido  # Necessário para exportação estática no Plotly
     PLOTLY_AVAILABLE = True
-except ImportError:
-    st.warning("Plotly não está instalado. Usando gráficos nativos do Streamlit (menos recursos).")
+    logger.info("Plotly e Kaleido importados com sucesso")
+except ImportError as e:
+    logger.warning(f"Bibliotecas de gráficos não disponíveis: {str(e)}")
+    st.warning("""
+    Gráficos avançados não disponíveis. Para habilitar todos os recursos:
+    - Adicione 'plotly>=5.15.0' e 'kaleido>=0.2.1' ao arquivo requirements.txt
+    - Recarregue o aplicativo
+    """)
+
+# --- Configuração robusta do locale com cache ---
+@st.cache_resource
+def configure_locale():
+    try:
+        locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+        logger.info("Locale configurado para pt_BR.UTF-8")
+    except locale.Error:
+        try:
+            locale.setlocale(locale.LC_ALL, 'pt_BR')
+            logger.info("Locale configurado para pt_BR")
+        except locale.Error:
+            try:
+                locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
+                logger.info("Locale configurado para Portuguese_Brazil.1252")
+            except locale.Error:
+                try:
+                    locale.setlocale(locale.LC_ALL, '')
+                    logger.info("Locale configurado para padrão do sistema")
+                except locale.Error:
+                    locale.setlocale(locale.LC_ALL, 'C.UTF-8')
+                    logger.warning("Configuração de locale específica não disponível. Usando padrão internacional.")
+
+configure_locale()
 
 # Função para formatar moeda com fallback robusto
 def formatar_moeda(valor):
@@ -426,4 +429,4 @@ with tab3:
 
 # Rodapé
 st.divider()
-st.caption("Calculadora Financeira Avançada - © 2023")
+st.caption(f"Calculadora Financeira Avançada - © {datetime.now().year}")
