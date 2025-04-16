@@ -5,6 +5,8 @@ from fpdf import FPDF
 from datetime import datetime
 import locale
 import sys
+import io
+from tempfile import NamedTemporaryFile
 
 # Configuração do locale para PT-BR com fallback
 try:
@@ -31,7 +33,7 @@ def formatar_moeda(valor):
         # Fallback para formatação manual se locale falhar
         return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# --- Funções de Cálculo Financeiro (mantidas como no original) ---
+# --- Funções de Cálculo Financeiro ---
 def calcular_price(valor_financiado, taxa_juros, prazo_meses):
     i = taxa_juros / 100
     parcela = valor_financiado * (i * math.pow(1 + i, prazo_meses)) / (math.pow(1 + i, prazo_meses) - 1)
@@ -140,7 +142,8 @@ def simular_imobiliario(valor, prazo_meses, taxa=0.7):
         'historico': historico
     }
 
-def gerar_pdf(resultado, sistema):
+def gerar_pdf_bytes(resultado, sistema):
+    """Gera PDF e retorna como bytes para download"""
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
@@ -191,9 +194,8 @@ def gerar_pdf(resultado, sistema):
         pdf.cell(col_widths[4], 8, txt=formatar_moeda(parcela['Saldo Devedor']), border=1)
         pdf.ln()
     
-    pdf_filename = f"financiamento_{sistema}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-    pdf.output(pdf_filename)
-    return pdf_filename
+    # Retorna os bytes do PDF
+    return pdf.output(dest='S').encode('latin1')
 
 # --- Interface do Streamlit ---
 st.set_page_config(page_title="Calculadora Financeira", page_icon="💰", layout="wide")
@@ -276,22 +278,18 @@ with tab1:
                     color=["#1f77b4", "#ff7f0e", "#2ca02c"]
                 )
             
-            # Exportar PDF
-            if st.button("Exportar para PDF"):
-                try:
-                    pdf_filename = gerar_pdf(resultado, sistema_nome)
-                    with open(pdf_filename, "rb") as f:
-                        st.download_button(
-                            "Baixar PDF",
-                            f,
-                            file_name=pdf_filename,
-                            mime="application/pdf"
-                        )
-                except Exception as e:
-                    st.error(f"Erro ao gerar PDF: {str(e)}")
+            # Exportar PDF - Versão corrigida
+            pdf_bytes = gerar_pdf_bytes(resultado, sistema_nome)
+            st.download_button(
+                label="Exportar para PDF",
+                data=pdf_bytes,
+                file_name=f"financiamento_{sistema_nome}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                mime="application/pdf"
+            )
                     
         except Exception as e:
             st.error(f"Erro ao calcular financiamento: {str(e)}")
+
 
 # [As abas Comparativo e Investimentos seguem a mesma estrutura, com tratamento de erros semelhante]
 
