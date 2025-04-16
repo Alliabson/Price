@@ -4,8 +4,3 @@ fpdf2
 numpy
 numpy-financial
 openpyxl
-plotly
-kaleido
-plotly>=5.15.0
-kaleido>=0.2.1
-package
