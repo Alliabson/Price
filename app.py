@@ -23,10 +23,7 @@ try:
 except ImportError as e:
     logger.warning(f"Bibliotecas de gráficos não disponíveis: {str(e)}")
     st.warning("""
-    Gráficos avançados não disponíveis. Para habilitar todos os recursos:
-    - Adicione 'plotly>=5.15.0' e 'kaleido>=0.2.1' ao arquivo requirements.txt
-    - Recarregue o aplicativo
-    """)
+ """)
 
 # --- Configuração robusta do locale com cache ---
 @st.cache_resource
