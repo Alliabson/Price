@@ -6,3 +6,11 @@ numpy-financial
 openpyxl
 plotly
 fpdf
+streamlit==1.32.2
+pandas==2.2.1
+fpdf2==2.7.7
+fpdf==1.7.2
+numpy==1.26.4
+numpy-financial==1.0.0
+openpyxl==3.1.2
+plotly==5.18.0
