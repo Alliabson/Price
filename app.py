@@ -5,6 +5,9 @@ from datetime import datetime
 import locale
 import sys
 
+# --- CONFIGURAÇÃO INICIAL DEVE VIR PRIMEIRO ---
+st.set_page_config(page_title="Calculadora Financeira", page_icon="💰", layout="wide")
+
 # Configuração do locale para PT-BR com fallback
 try:
     locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
@@ -22,13 +25,18 @@ except ImportError:
     PLOTLY_AVAILABLE = False
     st.warning("Plotly não está instalado. Usando gráficos nativos do Streamlit (menos recursos).")
 
-# Função para formatar moeda com fallback
+# Função para formatar moeda com fallback robusto
 def formatar_moeda(valor):
     try:
+        # Tenta usar o locale configurado
         return locale.currency(valor, grouping=True, symbol=True)
     except:
-        # Fallback para formatação manual se locale falhar
-        return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        try:
+            # Fallback 1: Formatação manual com locale neutro
+            return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        except:
+            # Fallback 2: Formatação simples
+            return f"R$ {valor:.2f}"
 
 # --- Funções de Cálculo Financeiro ---
 def calcular_price(valor_financiado, taxa_juros, prazo_meses):
@@ -140,7 +148,6 @@ def simular_imobiliario(valor, prazo_meses, taxa=0.7):
     }
 
 # --- Interface do Streamlit ---
-st.set_page_config(page_title="Calculadora Financeira", page_icon="💰", layout="wide")
 st.title("💰 Calculadora Financeira Avançada")
 
 # Criar abas
@@ -323,7 +330,7 @@ with tab3:
     
     col1, col2 = st.columns(2)
     with col1:
-        taxa_imobiliario = st.number_input("Rendimento Imobiliário (% a.m.):", min_value=0.0, step=0.01, value=0.7, key="taxa_imob")
+        taxa_imobiliario = st.number_input("Outra aplicação (% a.m.):", min_value=0.0, step=0.01, value=0.7, key="taxa_imob")
     
     if st.button("Simular Investimentos", key="simular"):
         try:
@@ -351,8 +358,8 @@ with tab3:
                     st.line_chart(df_poup.set_index('Mês')['Valor'])
             
             with cols[1]:
-                st.metric("Imobiliário - Valor Final", formatar_moeda(res_imobiliario['valor_final']))
-                st.metric("Imobiliário - Rendimento", formatar_moeda(res_imobiliario['rendimento_total']))
+                st.metric("Outra aplicação - Valor Final", formatar_moeda(res_imobiliario['valor_final']))
+                st.metric("Outra aplicação - Rendimento", formatar_moeda(res_imobiliario['rendimento_total']))
                 
                 df_imob = pd.DataFrame(res_imobiliario['historico'])
                 if PLOTLY_AVAILABLE:
@@ -360,7 +367,7 @@ with tab3:
                         df_imob,
                         x='Mês',
                         y='Valor',
-                        title="Evolução Imobiliário",
+                        title="Evolução Outra aplicação",
                         color_discrete_sequence=['orange']
                     )
                     st.plotly_chart(fig, use_container_width=True)
@@ -372,21 +379,21 @@ with tab3:
             df_comparativo = pd.DataFrame({
                 'Mês': df_poup['Mês'],
                 'Poupança': df_poup['Valor'],
-                'Imobiliário': df_imob['Valor']
+                'Outra aplicação': df_imob['Valor']
             })
             
             if PLOTLY_AVAILABLE:
                 fig = px.line(
                     df_comparativo,
                     x='Mês',
-                    y=['Poupança', 'Imobiliário'],
+                    y=['Poupança', 'Outra aplicação'],
                     title="Comparação de Investimentos",
                     labels={'value': 'Valor (R$)', 'variable': 'Tipo'}
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.line_chart(
-                    df_comparativo.set_index('Mês')[['Poupança', 'Imobiliário']],
+                    df_comparativo.set_index('Mês')[['Poupança', 'Outra aplicação']],
                     color=["#1f77b4", "#ff7f0e"]
                 )
                 
