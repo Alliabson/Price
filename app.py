@@ -7,13 +7,21 @@ import sys
 import io
 from tempfile import NamedTemporaryFile
 try:
-    from fpdf import FPDF  # Tenta importar fpdf (versão mais antiga)
+    from fpdf2 import FPDF  # Tenta primeiro a versão mais nova (fpdf2)
+    st.success("Usando fpdf2 (versão mais recente)")
 except ImportError:
     try:
-        from fpdf2 import FPDF  # Tenta importar fpdf2 (versão mais nova)
+        from fpdf import FPDF  # Fallback para a versão antiga
+        st.success("Usando fpdf (versão legado)")
     except ImportError:
-        st.error("Não foi possível importar a biblioteca FPDF. Por favor, verifique as dependências.")
+        st.error("""
+        Não foi possível importar a biblioteca FPDF. 
+        Por favor, verifique se as dependências estão corretas no arquivo requirements.txt:
+        - fpdf2==2.7.7
+        - fpdf==1.7.2
+        """)
         st.stop()
+        
 # Configuração do locale para PT-BR com fallback
 try:
     locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
