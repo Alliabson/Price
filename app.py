@@ -1,13 +1,19 @@
 import streamlit as st
 import math
 import pandas as pd
-from fpdf import FPDF
 from datetime import datetime
 import locale
 import sys
 import io
 from tempfile import NamedTemporaryFile
-
+try:
+    from fpdf import FPDF  # Tenta importar fpdf (versão mais antiga)
+except ImportError:
+    try:
+        from fpdf2 import FPDF  # Tenta importar fpdf2 (versão mais nova)
+    except ImportError:
+        st.error("Não foi possível importar a biblioteca FPDF. Por favor, verifique as dependências.")
+        st.stop()
 # Configuração do locale para PT-BR com fallback
 try:
     locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
